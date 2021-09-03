@@ -1,5 +1,12 @@
-// Asynchronous part of ASIO means reading data not all at once
+/***************************
+ * NOTE: Comments are	made *
+ * a bit verbose for my		 *
+ * own learning purposes   *
+ ***************************/
+
+//Asynchronous part of ASIO means reading data not all at once
 // since it's difficult to predict when data will be received
+
 #include <iostream>
 #include <chrono>
 
@@ -19,8 +26,8 @@
 // Header file for network communication
 #include <asio/ts/internet.hpp>
 
-// Buffer to store received data and display all at once later
-std::vector<char> vBuffer(20 * 1024);
+// Buffer to store received data and display all at once later (values are in KB)
+std::vector<char> vBuffer(1 * 1024);
 
 void GrabSomeData(asio::ip::tcp::socket &socket)
 {
@@ -46,13 +53,13 @@ int main()
 	// Variable for errors
 	asio::error_code ec;
 
-	// Create a "context" - essentially the platform specific interface
+	// Create a "context" - essentially the platform specific interface (space where ASIO can work)
 	asio::io_context context;
 
 	// Give fake tasks to ASIO so the context doesn't finish
 	asio::io_context::work idleWork(context);
 
-	// Start the context in its own thread in its own space
+	// Start the context in its own thread (in its own space)
 	// without blocking the main proram
 	std::thread thrContext = std::thread([&]() { context.run(); });
 
@@ -95,6 +102,9 @@ int main()
 		// Program does something else, while ASIO handles data transfer in background
 		using namespace std::chrono_literals;
 		std::this_thread::sleep_for(2000ms);
+
+		context.stop();
+		if (thrContext.joinable()) thrContext.join();
 
 		//// make socket wait for server to respond and then read
 		//socket.wait(socket.wait_read);
