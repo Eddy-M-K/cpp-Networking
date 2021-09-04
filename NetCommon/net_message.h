@@ -35,7 +35,7 @@ namespace olc
       }
 
       // Pushes any POD-like data in the message buffer
-      template<typename Datatype> 
+      template<typename DataType> 
       friend message<T>& operator << (message<T>& msg, const DataType& data)
       {
         // Check that the type of the data being pushed is trivially copyable

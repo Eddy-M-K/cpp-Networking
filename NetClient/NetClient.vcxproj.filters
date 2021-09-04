@@ -15,14 +15,11 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="net_common.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="net_message.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="olc_net.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
+    <ClCompile Include="SimpleClient.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
   </ItemGroup>
 </Project>
