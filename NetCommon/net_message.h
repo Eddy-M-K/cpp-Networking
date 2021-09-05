@@ -1,7 +1,7 @@
 #pragma once
 #include "net_common.h"
 
-namespace olc
+namespace kim
 {
   namespace net
   {
@@ -76,6 +76,25 @@ namespace olc
         return msg;
       }
 
+    };
+
+    // Forward declare the connection
+    template <typename T>
+    class connection;
+
+    // Owned message which encapsulates a message as well as a shared pointer to a connection
+    template <typename T>
+    struct owned_message
+    {
+      std::shared_ptr<connection<T>> remote = nullptr;
+      message<T> msg;
+
+      // A friendly string maker
+      friend std::ostream& operator << (std::ostream& os, const owned_message<T>& msg)
+      {
+        os << msg.msg;
+        return os;
+      }
     };
   }
 }
