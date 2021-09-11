@@ -29,7 +29,11 @@ namespace kim
       {
         try
         {
+          // Tell ASIO to wait for client connection to prevent 
+          // it from ending immediately when called in a new thread
           WaitForClientConnection();
+
+          m_threadContext = std::thread([this]() { m_asioContext.run(); });
         }
         catch (std::exception& e)
         {
@@ -37,17 +41,56 @@ namespace kim
           std::cerr << "[SERVER] Exception: " << e.what() << "\n";
           return false;
         }
+
+        std::cout << "[SERVER] Started!\n";
+        return true;
       }
 
       void Stop()
       {
+        // Request the context to close
+        m_asioContext.stop();
 
+        // Tidy up the context thread;
+        if (m_threadContext.joinable()) m_threadContext.join();
+
+        std::cout << "[SERVER] Stopped!\n";
       }
 
       // Asynchronous - instruct ASIO to wait for connection
       void WaitForClientConnection()
       {
+        m_asioAcceptor.async_accept_accept(
+          [this](std::error_code ec, asio::ip::tcp::socket socket)
+          {
+            if (!ec)
+            {
+              std::cout << "[SERVER] New Connection: " << socket.remote_endpoint() << "\n";
 
+              std::shared_ptr<connection<T>> newconn =
+                std::make_shared<connection<T>>(connection<T>::owner::server,
+                  m_asioContext, std::move(socket), m_qMessagesIn);
+
+              // Give the user server a chance to deny connections
+              if (OnClientConnect(newconn))
+              {
+
+              }
+              else
+              {
+                std::cout << "[-----] Connection Denied\n";
+              }
+            }
+            else
+            {
+              // Error has occurred during acceptance
+              std::cout << "[SERVER] New Connection Error: " << ec.message() << "\n";
+            }
+
+            // Prime the ASIO context with more work
+            // Simply wait for another connection
+            WaitForClientConnection();
+          });
       }
 
       // Send a message to a specific client
@@ -83,6 +126,9 @@ namespace kim
 
       // Thread safe queue for incoming message packets
       tsqueue<owned_message<T>> m_qMessagesIn;
+
+      // Container of active and validated connections
+      std::deque<std::shared_ptr<connection<T>>> m_deqConnections;
 
       // Order of declaration is imporant - it is also the order of initialization
       asio::io_context m_asioContext;
