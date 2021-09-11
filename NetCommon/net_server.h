@@ -74,7 +74,13 @@ namespace kim
               // Give the user server a chance to deny connections
               if (OnClientConnect(newconn))
               {
+                // Connection allowed, so add to container of new connections
+                // If connection is denied, newconn goes out of scope and is deleted (shared_ptr)
+                m_deqConnections.push_back(std::move(newconn));
 
+                m_deqConnections.back()->ConnectToClient(nIDCounter++);
+
+                std::cout << "[" << m_deqConnections.back()->GetID() << "] Connection Approved\n";
               }
               else
               {
@@ -96,13 +102,44 @@ namespace kim
       // Send a message to a specific client
       void MessageClient(std::shared_ptr<connection<T>> client, const message<T>& msg)
       {
-
+        if (client && client->IsConnected())
+        {
+          client->Send(msg);
+        }
+        else
+        {
+          // Limitation of TCP protocol is that we do not know if client was disconnected
+          // Assume it was disconnected if IsConnected() returns false
+          OnClientDisconnect(client);
+          client.reset();
+          m_deqConnections.erase(
+            std::remove(m_deqConnections.begin(), m_deqConnections.end(), client), m_deqConnections.end());
+        }
       }
 
       // Send message to all clients
       void MessageAllClients(const message<T>& msg, std::shared_ptr<connection<T>> pIgnoreClient = nullptr)
       {
+        bool bInvalidClientExists = false;
 
+        for (auto& client : m_deqConnections)
+        {
+          // Check client is connected
+          if (client && client->IsConnected())
+          {
+            if (client != pIgnoreClient) client->Send(msg);
+          }
+          else
+          {
+            // Assumed that client was disconnected
+            OnClientDiscconect(client);
+            client.reset();
+            bInvalidClientExists = true;
+          }
+        }
+
+        if (bInvalidClientExists) m_deqConnections.erase(
+          std::remove(m_deqConnections.begin(), m_deqConnections.end(), client), m_deqConnections.end());
       }
 
     protected:
