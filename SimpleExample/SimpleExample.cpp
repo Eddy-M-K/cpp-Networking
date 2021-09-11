@@ -1,7 +1,7 @@
 /***************************
  * NOTE: Comments are	made *
  * a bit verbose for my		 *
- * own learning purposes   *
+ * own learning purposes     *
  ***************************/
 
 //Asynchronous part of ASIO means reading data not all at once
