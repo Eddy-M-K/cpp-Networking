@@ -23,14 +23,14 @@ namespace kim
             const T& front()
             {
                 std::scoped_lock lock(muxQueue);
-                return deQueue.front();
+                return deqQueue.front();
             }
 
             // Returns and maintains item at back of queue
             const T& back()
             {
                 std::scoped_lock lock(muxQueue);
-                return deqQueue.back()
+                return deqQueue.back();
             }
 
             // Adds an item to back of queue

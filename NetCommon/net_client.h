@@ -35,7 +35,7 @@ namespace kim
 
                     // Resolve hostname/IP-address into tangible, physical address
                     asio::ip::tcp::resolver resolver(m_context);
-                    m_endpoints = resolver.resolve(host, std::to_string(port));
+                    asio::ip::tcp::resolver::results_type m_endpoints = resolver.resolve(host, std::to_string(port));
 
                     // Tell the connection object to connect to server
                     m_connection->ConnectToServer(m_endpoints);

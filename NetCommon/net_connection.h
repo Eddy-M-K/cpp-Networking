@@ -41,7 +41,7 @@ namespace kim
             // This queue holds all messages that have been received from
             // the remote side of this connection. Note it is a reference
             // as the "owner" of this connection is expected to provide a queue
-            tsqueue<owned_message>& m_qMessagesIn;
+            tsqueue<owned_message<T>>& m_qMessagesIn;
         };
     }
 }

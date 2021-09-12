@@ -60,7 +60,7 @@ namespace kim
             // Asynchronous - instruct ASIO to wait for connection
             void WaitForClientConnection()
             {
-                m_asioAcceptor.async_accept_accept(
+                m_asioAcceptor.async_accept(
                     [this](std::error_code ec, asio::ip::tcp::socket socket)
                     {
                         if (!ec)
@@ -72,20 +72,20 @@ namespace kim
                                     m_asioContext, std::move(socket), m_qMessagesIn);*/
 
                             // Give the user server a chance to deny connections
-                            if (OnClientConnect(newconn))
-                            {
-                                // Connection allowed, so add to container of new connections
-                                // If connection is denied, newconn goes out of scope and is deleted (shared_ptr)
-                                m_deqConnections.push_back(std::move(newconn));
+                            //if (OnClientConnect(newconn))
+                            //{
+                            //    // Connection allowed, so add to container of new connections
+                            //    // If connection is denied, newconn goes out of scope and is deleted (shared_ptr)
+                            //    m_deqConnections.push_back(std::move(newconn));
 
-                                m_deqConnections.back()->ConnectToClient(nIDCounter++);
+                            //    m_deqConnections.back()->ConnectToClient(nIDCounter++);
 
-                                std::cout << "[" << m_deqConnections.back()->GetID() << "] Connection Approved\n";
-                            }
-                            else
-                            {
-                                std::cout << "[-----] Connection Denied\n";
-                            }
+                            //    std::cout << "[" << m_deqConnections.back()->GetID() << "] Connection Approved\n";
+                            //}
+                            //else
+                            //{
+                            //    std::cout << "[-----] Connection Denied\n";
+                            //}
                         }
                         else
                         {
@@ -139,7 +139,7 @@ namespace kim
                 }
 
                 if (bInvalidClientExists) m_deqConnections.erase(
-                    std::remove(m_deqConnections.begin(), m_deqConnections.end(), client), m_deqConnections.end());
+                    std::remove(m_deqConnections.begin(), m_deqConnections.end(), nullptr), m_deqConnections.end());
             }
 
             void Update(size_t nMaxMessages = -1)
