@@ -53,7 +53,48 @@ namespace kim
                 return m_socket.is_open();
             }
 
-            bool Send(const message<T>& msg);
+            void Send(const message<T>& msg);
+
+        private: 
+            // Async - Prime context ready to read a message header
+            void ReadHeader()
+            {
+                asio::async_read(m_socket, asio::buffer(&m_msgTemporaryIn.header, sizeof(message_header<T>)))
+                    [this](std::error_code ec, std::size_t length)
+                    {
+                        if (!ec)
+                        {
+                            if (m_msgTemporaryIn.header.size > 0)
+                            {
+                                m_msgTemporaryIn.body.resize(m_msgTemporaryIn.header.size);
+                                ReadBody();
+                            }
+                        }
+                        else
+                        {
+                            std::cout << "[" << id << "] Read Header Fail.\n";
+                            m_socket.close();
+                        }
+                    }
+            }
+
+            // Async - Prime context ready to read a message body
+            void ReadBody()
+            {
+
+            }
+
+            // Async - Prime context to write a message header
+            void WriteHeader()
+            {
+
+            }
+
+            // Async - Prime context to write a message body
+            void WriteBody()
+            {
+
+            }
 
         protected:
             // Each connection has a unique socket to a remote
@@ -70,6 +111,7 @@ namespace kim
             // the remote side of this connection. Note it is a reference
             // as the "owner" of this connection is expected to provide a queue
             tsqueue<owned_message<T>>& m_qMessagesIn;
+            message<T> m_msgTemporaryIn;
 
             // The "owner" decides hwo some of the connection behaves
             owner m_nOwnerType = owner::server;
