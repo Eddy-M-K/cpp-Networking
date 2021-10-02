@@ -28,8 +28,7 @@ namespace kim
             // Connect to server with hostname/IP-address and port
             bool Connect(const std::string& host, const uint16_t port)
             {
-                try
-                {
+                try {
                     // Create connection
                     m_connection = std::make_unique<connection<T>>();
 
@@ -42,9 +41,7 @@ namespace kim
 
                     // Start Context Thread
                     thrContext = std::thread([this]() { m_context.run(); });
-                }
-                catch (std::exception& e)
-                {
+                } catch (std::exception& e) {
                     std::cerr << "Client Exception: " << e.what() << "\n";
                     return false;
                 }
@@ -56,8 +53,7 @@ namespace kim
             void Disconnect()
             {
                 // If connection exists, and it's connected:
-                if (IsConnected())
-                {
+                if (IsConnected()) {
                     // Disconnect from server gracefully
                     m_connection->Disconnect();
                 }

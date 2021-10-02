@@ -27,16 +27,13 @@ namespace kim
 
             bool Start()
             {
-                try
-                {
+                try {
                     // Tell ASIO to wait for client connection to prevent 
                     // it from ending immediately when called in a new thread
                     WaitForClientConnection();
 
                     m_threadContext = std::thread([this]() { m_asioContext.run(); });
-                }
-                catch (std::exception& e)
-                {
+                } catch (std::exception& e) {
                     // Something prohibited the server from listening
                     std::cerr << "[SERVER] Exception: " << e.what() << "\n";
                     return false;
@@ -72,8 +69,7 @@ namespace kim
                                     m_asioContext, std::move(socket), m_qMessagesIn);
 
                             //Give the user server a chance to deny connections
-                            if (OnClientConnect(newconn))
-                            {
+                            if (OnClientConnect(newconn)) {
                                 // Connection allowed, so add to container of new connections
                                 // If connection is denied, newconn goes out of scope and is deleted (shared_ptr)
                                 m_deqConnections.push_back(std::move(newconn));
@@ -81,14 +77,17 @@ namespace kim
                                 m_deqConnections.back()->ConnectToClient(nIDCounter++);
 
                                 std::cout << "[" << m_deqConnections.back()->GetID() << "] Connection Approved\n";
-                            }
-                            else
-                            {
+                            } else {
                                 std::cout << "[-----] Connection Denied\n";
                             }
-                        }
-                        else
-                        {
+
+                            if {
+
+                            } else {
+
+                            }
+
+                        } else {
                             // Error has occurred during acceptance
                             std::cout << "[SERVER] New Connection Error: " << ec.message() << "\n";
                         }
@@ -102,12 +101,9 @@ namespace kim
             // Send a message to a specific client
             void MessageClient(std::shared_ptr<connection<T>> client, const message<T>& msg)
             {
-                if (client && client->IsConnected())
-                {
+                if (client && client->IsConnected()) {
                     client->Send(msg);
-                }
-                else
-                {
+                } else {
                     // Limitation of TCP protocol is that we do not know if client was disconnected
                     // Assume it was disconnected if IsConnected() returns false
                     OnClientDisconnect(client);
@@ -122,15 +118,11 @@ namespace kim
             {
                 bool bInvalidClientExists = false;
 
-                for (auto& client : m_deqConnections)
-                {
+                for (auto& client : m_deqConnections) {
                     // Check client is connected
-                    if (client && client->IsConnected())
-                    {
+                    if (client && client->IsConnected()) {
                         if (client != pIgnoreClient) client->Send(msg);
-                    }
-                    else
-                    {
+                    } else {
                         // Assumed that client was disconnected
                         OnClientDiscconect(client);
                         client.reset();
@@ -145,8 +137,7 @@ namespace kim
             void Update(size_t nMaxMessages = -1)
             {
                 size_t nMessageCount = 0;
-                while (nMessageCount < nMaxMessages && !m_qMessagesIn.empty())
-                {
+                while (nMessageCount < nMaxMessages && !m_qMessagesIn.empty()) {
                     // Grab the front message
                     auto msg = m_qMessagesIn.pop_front();
 
