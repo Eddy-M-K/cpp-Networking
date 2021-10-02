@@ -25,7 +25,9 @@ namespace kim
             } 
             
             virtual ~connection()
-            {}
+            {
+            
+            }
 
             uint32_t GetID() const
             {
@@ -34,10 +36,8 @@ namespace kim
 
             void ConnectToClient(uint32_t uid = 0)
             {
-                if (m_nOwnerType == owner::server)
-                {
-                    if (m_socket.is_open())
-                    {
+                if (m_nOwnerType == owner::server) {
+                    if (m_socket.is_open()) {
                         id = uid;
                     }
                 }
@@ -59,41 +59,73 @@ namespace kim
             // Async - Prime context ready to read a message header
             void ReadHeader()
             {
-                asio::async_read(m_socket, asio::buffer(&m_msgTemporaryIn.header, sizeof(message_header<T>)))
+                asio::async_read(m_socket, asio::buffer(&m_msgTemporaryIn.header, sizeof(message_header<T>)),
                     [this](std::error_code ec, std::size_t length)
                     {
-                        if (!ec)
-                        {
-                            if (m_msgTemporaryIn.header.size > 0)
-                            {
+                        if (!ec) {
+                            if (m_msgTemporaryIn.header.size > 0) {
                                 m_msgTemporaryIn.body.resize(m_msgTemporaryIn.header.size);
                                 ReadBody();
                             }
                         }
-                        else
-                        {
+                        else {
+                            /*AddToIncomingMessageQueue();*/
                             std::cout << "[" << id << "] Read Header Fail.\n";
                             m_socket.close();
                         }
-                    }
+                    });
             }
 
             // Async - Prime context ready to read a message body
             void ReadBody()
             {
-
+                asio::async_read(m_socket, asio::buffer(&m_msgTemporaryIn.data(), m_msgTemporaryIn.body.size()),
+                    [this](std::error_code ec, std::size_t length)
+                    {
+                        if (!ec) {
+                            AddToIncomingMessageQueue();
+                        } else {
+                            std::cout << "[" << id << "] Read Body Fail.\n";
+                            m_socket.close();
+                        }
+                    });
             }
 
             // Async - Prime context to write a message header
             void WriteHeader()
             {
+                asio::async_write(m_socket, asio::buffer(&m_qMessagesOut.front().header, sizeof(message_header<T>))
+                    [this](std::error_code ec, std:size_t length)
+                    {
+                        if (!ec) {
+                            if (m_qMessagesOut.front().body.size() > 0) {
+                                WriteBody();
+                            } else {
+                                m_qMessagesOut.pop_front();
 
+                                if (!m_qMessagesOut.empty() {
+                                    WriteHeader();
+                                }
+                            }
+                        }
+                    }
             }
 
             // Async - Prime context to write a message body
             void WriteBody()
             {
 
+            }
+
+            void AddToIncomingMessageQueue()
+            {
+                if (m_nOwnerType == owner::server) {
+                    m_qMessagesIn.push_back({ this->shared_from_this(), m_msgTemporaryIn });
+                } else {
+                    m_qMessageIn.push_back({ nullptr, m_msgTemporaryIn });
+                }
+
+                ReadHeader();
             }
 
         protected:
