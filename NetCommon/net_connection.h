@@ -39,21 +39,53 @@ namespace kim
                 if (m_nOwnerType == owner::server) {
                     if (m_socket.is_open()) {
                         id = uid;
+                        ReadHeader();
                     }
                 }
             }
 
             // Only called by clients
-            bool ConnectToServer();
+            bool ConnectToServer(const asio::ip::tcp::resolver::results_type& endpoints)
+            {
+                // Only clients can connect to servers
+                if (m_nOwnerType == owner::client) {
+                    // Request that ASIO attempt to connect to an endpoint
+                    asio::async_connect(m_socket, endpoints,
+                        [this](std::error_code ec, asio::ip::tcp::endpoint endpoint)
+                        {
+                            if (!ec) {
+                                ReadHeader();
+                            }
+                        });
+                }
+            }
+
             // Can be called by both clients and servers
-            bool Disconnect();
+            bool Disconnect()
+            {
+                if (IsConnected()) {
+                    asio::post(m_asioContext, [this]() { m_socket.close(); });
+                }
+            }
             // Is connection open and active
             bool IsConnected() const
             {
                 return m_socket.is_open();
             }
 
-            void Send(const message<T>& msg);
+            void Send(const message<T>& msg)
+            {
+                // Send a job to ASIO context whenever needed
+                asio::post(m_asioContext,
+                    [this, msg]()
+                    {
+                        bool bWritingMessage = !m_qMessagesOut.empty();
+                        m_qMessagesOut.push_back(msg);
+                        if (!bWritingMessage) {
+                            WriteHeader();
+                        }
+                    });
+            }
 
         private: 
             // Async - Prime context ready to read a message header
@@ -114,7 +146,20 @@ namespace kim
             // Async - Prime context to write a message body
             void WriteBody()
             {
+                asio::async_write(m_socket, asio::buffer(m_qMessagesOut.front().body.data(), m_qMessagesOut.front().body.size()),
+                    [this](std::error_code ec, std::size_t length)
+                    {
+                        if (!ec) {
+                            m_qMessagesOut.pop_front();
 
+                            if (!m_qMessagesOut.empty()) {
+                                WriteHeader();
+                            }
+                        } else {
+                            std::cout << "[" << id << "] Write Body Fail.\n";
+                            m_socket.close();
+                        }
+                    }
             }
 
             void AddToIncomingMessageQueue()

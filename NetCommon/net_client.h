@@ -29,15 +29,18 @@ namespace kim
             bool Connect(const std::string& host, const uint16_t port)
             {
                 try {
-                    // Create connection
-                    m_connection = std::make_unique<connection<T>>();
-
                     // Resolve hostname/IP-address into tangible, physical address
                     asio::ip::tcp::resolver resolver(m_context);
-                    asio::ip::tcp::resolver::results_type m_endpoints = resolver.resolve(host, std::to_string(port));
+                    asio::ip::tcp::resolver::results_type endpoints = resolver.resolve(host, std::to_string(port));
+
+                    // Create connection
+                    m_connection = std::make_unique<connection<T>>(
+                        connection<T>::owner::client,
+                        m_context,
+                        asio::ip::tcp::socket(m_context), m_qMessagesIn);
 
                     // Tell the connection object to connect to server
-                    m_connection->ConnectToServer(m_endpoints);
+                    m_connection->ConnectToServer(endpoints);
 
                     // Start Context Thread
                     thrContext = std::thread([this]() { m_context.run(); });
@@ -86,7 +89,7 @@ namespace kim
             // ASIO context needs a thread of its own to execute its work commands
             std::thread thrContext;
             // Hardware socket that is connected to the server
-            asio::ip::tcp::socket m_socket;
+            // asio::ip::tcp::socket m_socket;
             // Client has a single instance of a "connection" object, which handles data transfer
             std::unique_ptr<connection<T>> m_connection;
 
