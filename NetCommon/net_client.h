@@ -14,7 +14,7 @@ namespace kim
         class client_interface
         {
         public:
-            client_interface() : m_socket(m_context)
+            client_interface()
             {
                 // Initialize the socket with the IO context, so it can function
             }

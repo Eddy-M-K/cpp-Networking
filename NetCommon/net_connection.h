@@ -79,6 +79,7 @@ namespace kim
                 asio::post(m_asioContext,
                     [this, msg]()
                     {
+                        // If there are outgoing messages in queue, then in the background, ASIO is sending
                         bool bWritingMessage = !m_qMessagesOut.empty();
                         m_qMessagesOut.push_back(msg);
                         if (!bWritingMessage) {
@@ -88,7 +89,7 @@ namespace kim
             }
 
         private: 
-            // Async - Prime context ready to read a message header
+            // Async - Prime context ready to read a message header (Client has sent a message)
             void ReadHeader()
             {
                 asio::async_read(m_socket, asio::buffer(&m_msgTemporaryIn.header, sizeof(message_header<T>)),
@@ -111,7 +112,7 @@ namespace kim
             // Async - Prime context ready to read a message body
             void ReadBody()
             {
-                asio::async_read(m_socket, asio::buffer(&m_msgTemporaryIn.data(), m_msgTemporaryIn.body.size()),
+                asio::async_read(m_socket, asio::buffer(m_msgTemporaryIn.body.data(), m_msgTemporaryIn.body.size()),
                     [this](std::error_code ec, std::size_t length)
                     {
                         if (!ec) {
@@ -126,8 +127,8 @@ namespace kim
             // Async - Prime context to write a message header
             void WriteHeader()
             {
-                asio::async_write(m_socket, asio::buffer(&m_qMessagesOut.front().header, sizeof(message_header<T>))
-                    [this](std::error_code ec, std:size_t length)
+                asio::async_write(m_socket, asio::buffer(&m_qMessagesOut.front().header, sizeof(message_header<T>)),
+                    [this](std::error_code ec, std::size_t length)
                     {
                         if (!ec) {
                             if (m_qMessagesOut.front().body.size() > 0) {
@@ -135,12 +136,14 @@ namespace kim
                             } else {
                                 m_qMessagesOut.pop_front();
 
-                                if (!m_qMessagesOut.empty() {
+                                // Check if queue is empty
+                                if (!m_qMessagesOut.empty())
+                                {
                                     WriteHeader();
                                 }
                             }
                         }
-                    }
+                    });
             }
 
             // Async - Prime context to write a message body
@@ -152,6 +155,7 @@ namespace kim
                         if (!ec) {
                             m_qMessagesOut.pop_front();
 
+                            // Check if queue is empty
                             if (!m_qMessagesOut.empty()) {
                                 WriteHeader();
                             }
@@ -159,7 +163,7 @@ namespace kim
                             std::cout << "[" << id << "] Write Body Fail.\n";
                             m_socket.close();
                         }
-                    }
+                    });
             }
 
             void AddToIncomingMessageQueue()
@@ -167,7 +171,7 @@ namespace kim
                 if (m_nOwnerType == owner::server) {
                     m_qMessagesIn.push_back({ this->shared_from_this(), m_msgTemporaryIn });
                 } else {
-                    m_qMessageIn.push_back({ nullptr, m_msgTemporaryIn });
+                    m_qMessagesIn.push_back({ nullptr, m_msgTemporaryIn });
                 }
 
                 ReadHeader();

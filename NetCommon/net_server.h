@@ -80,13 +80,6 @@ namespace kim
                             } else {
                                 std::cout << "[-----] Connection Denied\n";
                             }
-
-                            if {
-
-                            } else {
-
-                            }
-
                         } else {
                             // Error has occurred during acceptance
                             std::cout << "[SERVER] New Connection Error: " << ec.message() << "\n";
