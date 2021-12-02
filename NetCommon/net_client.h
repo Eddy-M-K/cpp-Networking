@@ -1,8 +1,7 @@
 #pragma once
+
 #include "net_common.h"
-#include "net_message.h"
 #include "net_tsqueue.h"
-#include "net_connection.h"
 
 namespace kim
 {
@@ -26,7 +25,7 @@ namespace kim
             }
 
             // Connect to server with hostname/IP-address and port
-            bool Connect(const std::string& host, const uint16_t port)
+            bool Connect(const std::string &host, const uint16_t port)
             {
                 try {
                     // Resolve hostname/IP-address into tangible, physical address
@@ -34,17 +33,14 @@ namespace kim
                     asio::ip::tcp::resolver::results_type endpoints = resolver.resolve(host, std::to_string(port));
 
                     // Create connection
-                    m_connection = std::make_unique<connection<T>>(
-                        connection<T>::owner::client,
-                        m_context,
-                        asio::ip::tcp::socket(m_context), m_qMessagesIn);
+                    m_connection = std::make_unique<connection<T>>(connection<T>::owner::client, m_context, asio::ip::tcp::socket(m_context), m_qMessagesIn);
 
                     // Tell the connection object to connect to server
                     m_connection->ConnectToServer(endpoints);
 
                     // Start Context Thread
                     thrContext = std::thread([this]() { m_context.run(); });
-                } catch (std::exception& e) {
+                } catch (std::exception &e) {
                     std::cerr << "Client Exception: " << e.what() << "\n";
                     return false;
                 }
@@ -77,8 +73,13 @@ namespace kim
                 else return false;
             }
 
+            void Send(const message<T> &msg)
+            {
+                if (IsConnected()) m_connection->Send(msg);
+            }
+
             // Retireve queue of messages from server
-            tsqueue<owned_message<T>>& Incoming()
+            tsqueue<kim::net::owned_message<T>> &Incoming()
             {
                 return m_qMessagesIn;
             }

@@ -33,7 +33,7 @@ namespace kim
                     WaitForClientConnection();
 
                     m_threadContext = std::thread([this]() { m_asioContext.run(); });
-                } catch (std::exception& e) {
+                } catch (std::exception &e) {
                     // Something prohibited the server from listening
                     std::cerr << "[SERVER] Exception: " << e.what() << "\n";
                     return false;
@@ -57,6 +57,8 @@ namespace kim
             // Asynchronous - instruct ASIO to wait for connection
             void WaitForClientConnection()
             {
+                // Acceptor object provides a unique socket for incoming connection attempt
+                // It waits until a socket connects
                 m_asioAcceptor.async_accept(
                     [this](std::error_code ec, asio::ip::tcp::socket socket)
                     {
@@ -92,7 +94,7 @@ namespace kim
             }
 
             // Send a message to a specific client
-            void MessageClient(std::shared_ptr<connection<T>> client, const message<T>& msg)
+            void MessageClient(std::shared_ptr<connection<T>> client, const message<T> &msg)
             {
                 if (client && client->IsConnected()) {
                     client->Send(msg);
@@ -107,17 +109,17 @@ namespace kim
             }
 
             // Send message to all clients
-            void MessageAllClients(const message<T>& msg, std::shared_ptr<connection<T>> pIgnoreClient = nullptr)
+            void MessageAllClients(const message<T> &msg, std::shared_ptr<connection<T>> pIgnoreClient = nullptr)
             {
                 bool bInvalidClientExists = false;
 
-                for (auto& client : m_deqConnections) {
+                for (auto &client : m_deqConnections) {
                     // Check client is connected
                     if (client && client->IsConnected()) {
                         if (client != pIgnoreClient) client->Send(msg);
                     } else {
                         // Assumed that client was disconnected
-                        OnClientDiscconect(client);
+                        OnClientDisconnect(client);
                         client.reset();
                         bInvalidClientExists = true;
                     }
@@ -127,9 +129,12 @@ namespace kim
                     std::remove(m_deqConnections.begin(), m_deqConnections.end(), nullptr), m_deqConnections.end());
             }
 
-            void Update(size_t nMaxMessages = -1)
+            void Update(size_t nMaxMessages = -1, bool bWait = false)
             {
+                if (bWait) m_qMessagesIn.wait();
+
                 size_t nMessageCount = 0;
+
                 while (nMessageCount < nMaxMessages && !m_qMessagesIn.empty()) {
                     // Grab the front message
                     auto msg = m_qMessagesIn.pop_front();
@@ -155,7 +160,7 @@ namespace kim
             }
 
             // Called when a message arrives 
-            virtual void OnMessage(std::shared_ptr<connection<T>> client, message<T>& msg)
+            virtual void OnMessage(std::shared_ptr<connection<T>> client, message<T> &msg)
             {
 
             }

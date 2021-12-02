@@ -1,4 +1,5 @@
 #pragma once
+
 #include "net_common.h"
 
 namespace kim
@@ -24,11 +25,11 @@ namespace kim
             // returns the size of the entire message packet in bytes
             size_t size() const
             {
-                return sizeof(message_header<T>) + body.size();
+                return body.size();
             }
 
             // Override "<<" operator for std::cout compatibility - produces friendly description of message
-            friend std::ostream& operator << (std::ostream& os, const message<T>& msg)
+            friend std::ostream &operator << (std::ostream &os, const message<T> &msg)
             {
                 os << "ID:" << int(msg.header.id) << " Size:" << msg.header.size;
                 return os;
@@ -36,7 +37,7 @@ namespace kim
 
             // Pushes any POD-like data in the message buffer
             template<typename DataType> 
-            friend message<T>& operator << (message<T>& msg, const DataType& data)
+            friend message<T> &operator << (message<T> &msg, const DataType &data)
             {
                 // Check that the type of the data being pushed is trivially copyable
                 static_assert(std::is_standard_layout<DataType>::value, "Data is too complex to be pushed into vector");
@@ -58,10 +59,10 @@ namespace kim
             }
 
             template<typename DataType>
-            friend message<T>& operator >> (message<T>& msg, DataType& data)
+            friend message<T> &operator >> (message<T> &msg, DataType &data)
             {
                 // Check that the type of data being pushed is trivially copyable
-                static_assert(std::is_standard_layout<DataType>::value, "Data is too complex to be pushed into vector");
+                static_assert(std::is_standard_layout<DataType>::value, "Data is too complex to be pulled from vector");
 
                 // Cache the location towards the end of the vector where the pulled data starts
                 size_t i = msg.body.size() - sizeof(DataType);
@@ -72,11 +73,18 @@ namespace kim
                 // Shrink the vector to remove read bytes, and reset end position
                 msg.body.resize(i);
 
+                // Recalculate message size
+                msg.header.size = msg.size();
+
                 // Return the target message so it can be "chained"
                 return msg;
             }
 
         };
+
+        /* Owned messaged is identical to a reqular message but is associated with 
+           a connection. On a server, the owner would be the client and on a client,
+           it would be the server. */
 
         // Forward declare the connection
         template <typename T>
@@ -90,7 +98,7 @@ namespace kim
             message<T> msg;
 
             // A friendly string maker
-            friend std::ostream& operator << (std::ostream& os, const owned_message<T>& msg)
+            friend std::ostream &operator << (std::ostream &os, const owned_message<T> &msg)
             {
                 os << msg.msg;
                 return os;
