@@ -95,8 +95,11 @@ namespace kim
 
             void wait()
             {
+                // Is queue empty or not
                 while (empty()) {
                     std::unique_lock<std::mutex> ul(muxBlocking);
+                    // Send thread to sleep through condition variable
+                    // Either we wake it up or a spurious wakeup occurs
                     cvBlocking.wait(ul);
                 }
             }
@@ -108,6 +111,7 @@ namespace kim
             // Double ended queue
             std::deque<T> deqQueue;
 
+            // Condition variable
             std::condition_variable cvBlocking;
             std::mutex muxBlocking;
         };

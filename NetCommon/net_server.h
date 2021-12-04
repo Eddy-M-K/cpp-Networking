@@ -131,6 +131,7 @@ namespace kim
 
             void Update(size_t nMaxMessages = -1, bool bWait = false)
             {
+                // Prevents server from occupying 100% of a CPU core
                 if (bWait) m_qMessagesIn.wait();
 
                 size_t nMessageCount = 0;
