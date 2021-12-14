@@ -166,6 +166,12 @@ namespace kim
 
             }
 
+            // Called when a client is validated
+            virtual void OnClientValidated(std::shared_ptr<connection<T>> client)
+            {
+
+            }
+
             // Thread safe queue for incoming message packets
             tsqueue<owned_message<T>> m_qMessagesIn;
 

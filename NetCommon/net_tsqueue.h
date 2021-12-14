@@ -58,6 +58,7 @@ namespace kim
                 std::scoped_lock lock(muxQueue);
                 deqQueue.emplace_back(std::move(item));
 
+                // Signal condition variable to wake up
                 std::unique_lock<std::mutex> ul(muxBlocking);
                 cvBlocking.notify_one();
             }
@@ -68,6 +69,7 @@ namespace kim
                 std::scoped_lock lock(muxQueue);
                 deqQueue.emplace_front(std::move(item));
 
+                // Signal condition variable to wake up
                 std::unique_lock<std::mutex> ul(muxBlocking);
                 cvBlocking.notify_one();
             }
@@ -105,14 +107,14 @@ namespace kim
             }
 
         protected:
+            // Double ended queue
+            std::deque<T> deqQueue;
             // Mutex to protect the double ended queue
             std::mutex muxQueue;
 
-            // Double ended queue
-            std::deque<T> deqQueue;
-
             // Condition variable
             std::condition_variable cvBlocking;
+            // Mutex to protect the double ended queue
             std::mutex muxBlocking;
         };
     }

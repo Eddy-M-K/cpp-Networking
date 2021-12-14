@@ -22,6 +22,19 @@ namespace kim
                 : m_asioContext(asioContext), m_socket(std::move(socket)), m_qMessagesIn(qIn)
             {
                 m_nOwnerType = parent;
+
+                // Construct validation check data
+                if (m_nOwnerType == owner::server) {
+                    // Connection is Server -> Client so construct random data for the 
+                    m_nHandshakeOut = uint64_t(std::chrono::system_clock::now().time_since_epoch().count());
+
+                    // Pre-calculate the result for checking when the client responds
+                    m_nHandshakeCheck = scramble(m_nHandshakeOut);
+                } else {
+                    // Connection is Client -> Server
+                    m_nHandshakeIn = 0;
+                    m_nHandshakeOut = 0
+                }
             }
             
             virtual ~connection()
@@ -39,7 +52,11 @@ namespace kim
                 if (m_nOwnerType == owner::server) {
                     if (m_socket.is_open()) {
                         id = uid;
-                        ReadHeader();
+                        // Write out the handshake data to be validated
+                        WriteValidation();
+
+                        // Wait asynchronously for the validation data
+                        ReadValidation(server);
                     }
                 }
             }
@@ -53,7 +70,8 @@ namespace kim
                     asio::async_connect(m_socket, endpoints,
                         [this](std::error_code ec, asio::ip::tcp::endpoint endpoint)
                         {
-                            if (!ec) ReadHeader();
+                            // Send packet to be validated
+                            ReadValidation();
                         });
                 }
             }
@@ -192,6 +210,59 @@ namespace kim
                 ReadHeader();
             }
 
+            // Encrypt data - will need to change later on because this is a form of security through obscurity
+            uint64_t scramble(uint64_t nInput)
+            {
+                uint64_t out = nInput ^ 0xDEADBEEFC0DECAFE;
+                out = (out & 0xF0F0F0F0F0F0F0) >> 6 | (out & 0x0F0F0F0F0F0F0F) << 2;
+                return out ^ 0x12345678C0DEFACE;
+            }
+
+            // Async - Used by both the client and server to write validation packet
+            void WriteValidation()
+            {
+                asio::async_write(m_socket, asio:buffer(&m_nHandshakeOut, sizeof(uint64_t)),
+                    [this](std::error_code ec, std::size_t length)
+                    {
+                        // Validation data sent, client should wait
+                        if (!ec) {
+                            if (m_nOwnerType == owner::client) ReadHeader();
+                        } else {
+                            m_socket.close();
+                        }
+                    });
+            }
+
+            void ReadValidation(kim::net::server_interface<T> *server = nullptr)
+            {
+                asio::async_read(m_socket, asio::buffer(&m_nHandshakeIn, sizeof(uint64_t)),
+                    [this, server](std::error_code ec, std::size_t length)
+                    {
+                        if (!ec) {
+                            if (m_nOwnerType == owner::server) {
+                                if (m_nHandshakeIn == m_nHandshakeCheck) {
+                                    // Connect properly
+                                    std::cout << "Client Validated" << std::endl;
+                                    server->OnClientValidated(this->shared_from_this());
+
+                                    ReadHeader();
+                                } else {
+                                    std::cout << "Client Disconnected (Failed Validation)" << std::endl;
+                                    m_socket.close();
+                                }
+                            } else {
+                                // Connection is a client, so solve the puzzle
+                                m_nHandshakeOut = scramble(m_nHandshakeIn);
+
+                                WriteValidation();
+                            }
+                        } else {
+                            std::cout << "Client Disconnected (ReadValidation)" << std::endl;
+                            m_socket.close();
+                        }
+                    });
+            }
+
         protected:
             // Each connection has a unique socket to a remote
             asio::ip::tcp::socket m_socket;
@@ -212,9 +283,13 @@ namespace kim
             message<T> m_msgTemporaryIn;
 
             // The "owner" decides how some of the connection behaves
-            owner m_nOwnerType = owner::server;
-
+            owner m_nOwnerType = owner::server
             uint32_t id = 0; 
+
+            // Handshake validation
+            uint64_t m_nHandshakeOut = 0;
+            uint64_t m_nHandshakeIn = 0;
+            uint64_t m_nHandshakeCheck = 0;
         };
     }
 }
