@@ -76,7 +76,7 @@ namespace kim
                                 // If connection is denied, newconn goes out of scope and is deleted (shared_ptr)
                                 m_deqConnections.push_back(std::move(newconn));
 
-                                m_deqConnections.back()->ConnectToClient(nIDCounter++);
+                                m_deqConnections.back()->ConnectToClient(this, nIDCounter++);
 
                                 std::cout << "[" << m_deqConnections.back()->GetID() << "] Connection Approved\n";
                             } else {
@@ -147,6 +147,12 @@ namespace kim
                 }
             }
 
+            // Called when a client is validated
+            virtual void OnClientValidated(std::shared_ptr<connection<T>> client)
+            {
+
+            }
+
         protected:
             // Called when a client connects, you can veto the connection by returning false
             virtual bool OnClientConnect(std::shared_ptr<connection<T>> client)
@@ -162,12 +168,6 @@ namespace kim
 
             // Called when a message arrives 
             virtual void OnMessage(std::shared_ptr<connection<T>> client, message<T> &msg)
-            {
-
-            }
-
-            // Called when a client is validated
-            virtual void OnClientValidated(std::shared_ptr<connection<T>> client)
             {
 
             }

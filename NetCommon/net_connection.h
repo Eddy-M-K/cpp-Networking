@@ -8,7 +8,10 @@ namespace kim
 {
     namespace net
     {
-        template <typename T>
+        template<typename T>
+        class server_interface;
+
+        template<typename T>
         class connection : public std::enable_shared_from_this<connection<T>>
         {
         public:
@@ -33,7 +36,7 @@ namespace kim
                 } else {
                     // Connection is Client -> Server
                     m_nHandshakeIn = 0;
-                    m_nHandshakeOut = 0
+                    m_nHandshakeOut = 0;
                 }
             }
             
@@ -47,7 +50,7 @@ namespace kim
                 return id;
             }
 
-            void ConnectToClient(uint32_t uid = 0)
+            void ConnectToClient(kim::net::server_interface<T> *server, uint32_t uid = 0)
             {
                 if (m_nOwnerType == owner::server) {
                     if (m_socket.is_open()) {
@@ -221,7 +224,7 @@ namespace kim
             // Async - Used by both the client and server to write validation packet
             void WriteValidation()
             {
-                asio::async_write(m_socket, asio:buffer(&m_nHandshakeOut, sizeof(uint64_t)),
+                asio::async_write(m_socket, asio::buffer(&m_nHandshakeOut, sizeof(uint64_t)),
                     [this](std::error_code ec, std::size_t length)
                     {
                         // Validation data sent, client should wait
@@ -283,7 +286,7 @@ namespace kim
             message<T> m_msgTemporaryIn;
 
             // The "owner" decides how some of the connection behaves
-            owner m_nOwnerType = owner::server
+            owner m_nOwnerType = owner::server;
             uint32_t id = 0; 
 
             // Handshake validation
