@@ -21,7 +21,7 @@ namespace kim
             virtual ~tsqueue() { clear(); }
 
             // Returns and maintains item at front of queue
-            const T &front()
+            const T& front()
             {
                 std::scoped_lock lock(muxQueue);
                 return deqQueue.front();
